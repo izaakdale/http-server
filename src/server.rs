@@ -1,8 +1,8 @@
-use std::io::Read;
+use std::io::{Read};
 use std::net::TcpListener;
-use crate::http::Request;
+use crate::http::{Request, Response, StatusCode};
 use std::convert::TryFrom;
-use std::convert::TryInto;
+// use std::convert::TryInto;
 
 pub struct Server {
     socket_addr: String,
@@ -27,13 +27,19 @@ impl Server {
                     match stream.read(&mut buf) {
                         Ok(..) => {
                             println!("received our request: {}", String::from_utf8_lossy(&buf));
-                            match Request::try_from(&buf[..]) {
-                                Ok(..) => {
+                            let resp = match Request::try_from(&buf[..]) {
+                                Ok(r) => {
+                                    dbg!(r);
+                                    Response::new(StatusCode::Ok, Some("Hello".to_string()))
+                                }
+                                Err(e) => {
+                                    print!("Error reading stream: {}", e);
+                                    Response::new(StatusCode::BadRequest, None)
+                                }
+                            };
 
-                                }
-                                Err(err) => {
-                                    println!("error converting from [u8] to Request: {}", err)
-                                }
+                            if let Err(e) = resp.send(&mut stream) {
+                                print!("Error sending to stream: {}", e)
                             }
                         }
                         Err(e) => {
