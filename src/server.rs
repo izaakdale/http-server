@@ -1,7 +1,7 @@
-use std::io::{Read};
-use std::net::TcpListener;
-use crate::http::{Request, Response, StatusCode, ParseError};
+use crate::http::{ParseError, Request, Response, StatusCode};
 use std::convert::TryFrom;
+use std::net::{TcpListener, TcpStream};
+use std::{io::Read, net::UdpSocket};
 
 pub trait Handler {
     fn handle_request(&mut self, request: &Request) -> Response;
@@ -17,9 +17,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(socket_addr: String) -> Self {
-        Self {
-            socket_addr
-        }
+        Self { socket_addr }
     }
 
     pub fn run(self, mut handler: impl Handler) {
@@ -35,9 +33,7 @@ impl Server {
                         Ok(..) => {
                             println!("received our request: {}", String::from_utf8_lossy(&buf));
                             let resp = match Request::try_from(&buf[..]) {
-                                Ok(r) => {
-                                    handler.handle_request(&r)
-                                }
+                                Ok(r) => handler.handle_request(&r),
                                 Err(e) => {
                                     print!("Error reading stream: {}", e);
                                     handler.handle_bad_request(&e)
@@ -58,7 +54,6 @@ impl Server {
                     continue;
                 }
             }
-
         }
     }
 }
